@@ -78,33 +78,23 @@
 
 <script>
     document.getElementById("planificacionForm").addEventListener("submit", function(event) {
-        event.preventDefault(); // Evitar que el formulario se envíe de forma tradicional
+        event.preventDefault(); // Evita el envío tradicional del formulario
 
-        // Obtener los datos del formulario
-        const fechaInicio = document.getElementById("fechaInicio").value;
-        const fechaFin = document.getElementById("fechaFin").value;
-        const actividades = document.getElementById("actividades").value;
+        let formData = new FormData(this);
+        let params = new URLSearchParams(formData);
 
-        // Enviar los datos al script de Google Apps Script
         fetch("https://script.google.com/macros/s/AKfycbwqtQzQcydg-s3RCPpVBo5gvLrLFuv66Bbb9bH_ckAmp_c7-oXxn0ueROEboFnUa11gPQ/exec", {
             method: "POST",
-            body: JSON.stringify({
-                fechaInicio: fechaInicio,
-                fechaFin: fechaFin,
-                actividades: actividades
-            }),
-            headers: {
-                "Content-Type": "application/json"
-            }
+            mode: "no-cors", // Evita problemas de CORS
+            body: params
         })
-        .then(response => response.text())
-        .then(message => {
-            alert(message); // Mostrar mensaje de éxito
-            document.getElementById("planificacionForm").reset(); // Limpiar el formulario
+        .then(() => {
+            alert("Formulario enviado correctamente.");
+            document.getElementById("planificacionForm").reset(); // Limpia el formulario
         })
         .catch(error => {
             console.error("Error:", error);
-            alert("Hubo un error al guardar los datos.");
+            alert("Hubo un problema al enviar los datos.");
         });
     });
 </script>
