@@ -29,7 +29,8 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        .form-group input, .form-group select, .form-group textarea {
+        .form-group input[type="text"],
+        .form-group textarea {
             width: 100%;
             padding: 8px;
             border: 1px solid #ccc;
@@ -38,31 +39,6 @@
         .form-group textarea {
             resize: vertical;
             height: 100px;
-        }
-        .activities-container {
-            margin-bottom: 15px;
-        }
-        .activity {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .add-btn {
-            background-color: #007bff;
-            color: white;
-            padding: 8px;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
-        }
-        .remove-btn {
-            background-color: red;
-            color: white;
-            padding: 4px 8px;
-            border: none;
-            cursor: pointer;
-            border-radius: 5px;
         }
         .form-group input[type="submit"] {
             background-color: #4CAF50;
@@ -83,7 +59,7 @@
     <h2>Planificación Semanal</h2>
     <form id="planificacionForm">
         <div class="form-group">
-            <label for="nombre">Nombre completo:</label>
+            <label for="nombre">Nombre Completo:</label>
             <input type="text" id="nombre" name="nombre" required>
         </div>
         <div class="form-group">
@@ -91,19 +67,13 @@
             <input type="text" id="cargo" name="cargo" required>
         </div>
         <div class="form-group">
-            <label for="fechaInicio">Fecha de inicio de la semana:</label>
-            <input type="date" id="fechaInicio" name="fechaInicio" required>
+            <label for="semana">Semana (rango de fechas):</label>
+            <input type="text" id="semana" name="semana" placeholder="Ejemplo: Semana del 12/02/2024 al 18/02/2024" required>
         </div>
         <div class="form-group">
-            <label for="fechaFin">Fecha de fin de la semana:</label>
-            <input type="date" id="fechaFin" name="fechaFin" required>
+            <label for="actividades">Actividades:</label>
+            <textarea id="actividades" name="actividades" placeholder="Escribe las actividades para esta semana" required></textarea>
         </div>
-        
-        <div class="activities-container" id="activitiesContainer">
-            <h3>Actividades</h3>
-            <button type="button" class="add-btn" onclick="addActivity()">+ Agregar Actividad</button>
-        </div>
-
         <div class="form-group">
             <input type="submit" value="Guardar Planificación">
         </div>
@@ -112,79 +82,37 @@
 
 <script>
     document.getElementById("planificacionForm").addEventListener("submit", function(event) {
-        event.preventDefault();
+        event.preventDefault(); // Evitar que el formulario se envíe de forma tradicional
 
+        // Obtener los datos del formulario
         const nombre = document.getElementById("nombre").value;
         const cargo = document.getElementById("cargo").value;
-        const fechaInicio = new Date(document.getElementById("fechaInicio").value);
-        const fechaFin = new Date(document.getElementById("fechaFin").value);
-        const semana = fechaInicio.toLocaleDateString() + " - " + fechaFin.toLocaleDateString();
-
-        const actividades = [];
-        document.querySelectorAll(".activity").forEach(activity => {
-            const dia = activity.querySelector("select").value;
-            const descripcion = activity.querySelector("textarea").value;
-            actividades.push({ dia: dia, descripcion: descripcion });
-        });
+        const semana = document.getElementById("semana").value;
+        const actividades = document.getElementById("actividades").value;
 
         // Enviar los datos al script de Google Apps Script
-        fetch("https://script.google.com/macros/s/AKfycbziEBIreVi-ERSq-Zi_NnagnUzY6th7M-Dwc_ZIA-H5moqxpuOu4x4ghLbaFAGOYNN72Q/exec", {
+        fetch("https://script.google.com/macros/s/AKfycbwqtQzQcydg-s3RCPpVBo5gvLrLFuv66Bbb9bH_ckAmp_c7-oXxn0ueROEboFnUa11gPQ/exec", {
             method: "POST",
-            body: JSON.stringify({ nombre, cargo, semana, actividades }),
-            headers: { "Content-Type": "application/json" }
+            body: JSON.stringify({
+                nombre: nombre,
+                cargo: cargo,
+                semana: semana,
+                actividades: actividades
+            }),
+            headers: {
+                "Content-Type": "application/json"
+            }
         })
         .then(response => response.text())
         .then(message => {
-            alert(message);
-            document.getElementById("planificacionForm").reset();
-            document.getElementById("activitiesContainer").innerHTML = '<h3>Actividades</h3><button type="button" class="add-btn" onclick="addActivity()">+ Agregar Actividad</button>';
+            alert(message); // Mostrar mensaje de éxito
+            document.getElementById("planificacionForm").reset(); // Limpiar el formulario
         })
         .catch(error => {
             console.error("Error:", error);
             alert("Hubo un error al guardar los datos.");
         });
     });
-
-    function addActivity() {
-        const fechaInicio = new Date(document.getElementById("fechaInicio").value);
-        if (isNaN(fechaInicio)) {
-            alert("Primero selecciona la fecha de inicio de la semana.");
-            return;
-        }
-
-        const daysOfWeek = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-        const activitiesContainer = document.getElementById("activitiesContainer");
-        const activityDiv = document.createElement("div");
-        activityDiv.classList.add("activity");
-
-        const select = document.createElement("select");
-        for (let i = 0; i < 7; i++) {
-            const dayDate = new Date(fechaInicio);
-            dayDate.setDate(fechaInicio.getDate() + i);
-            const dayName = daysOfWeek[dayDate.getDay()];
-            const dayNumber = dayDate.getDate();
-            const option = document.createElement("option");
-            option.value = `${dayName} ${dayNumber}`;
-            option.textContent = `${dayName} ${dayNumber}`;
-            select.appendChild(option);
-        }
-
-        const textArea = document.createElement("textarea");
-        textArea.placeholder = "Descripción de la actividad";
-        textArea.required = true;
-
-        const removeBtn = document.createElement("button");
-        removeBtn.textContent = "✖";
-        removeBtn.classList.add("remove-btn");
-        removeBtn.onclick = function() {
-            activityDiv.remove();
-        };
-
-        activityDiv.appendChild(select);
-        activityDiv.appendChild(textArea);
-        activityDiv.appendChild(removeBtn);
-        activitiesContainer.appendChild(activityDiv);
-    }
 </script>
 
 </body>
