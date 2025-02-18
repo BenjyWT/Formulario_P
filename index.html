@@ -29,7 +29,8 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        .form-group input[type="text"],
+        .form-group input,
+        .form-group select,
         .form-group textarea {
             width: 100%;
             padding: 8px;
@@ -40,7 +41,8 @@
             resize: vertical;
             height: 100px;
         }
-        .form-group input[type="submit"] {
+        .form-group input[type="submit"],
+        .add-btn, .remove-btn {
             background-color: #4CAF50;
             color: white;
             padding: 10px 20px;
@@ -48,8 +50,15 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        .form-group input[type="submit"]:hover {
+        .form-group input[type="submit"]:hover,
+        .add-btn:hover, .remove-btn:hover {
             background-color: #45a049;
+        }
+        .remove-btn {
+            background-color: #d9534f;
+        }
+        .remove-btn:hover {
+            background-color: #c9302c;
         }
     </style>
 </head>
@@ -60,19 +69,34 @@
     <form id="planificacionForm">
         <div class="form-group">
             <label for="nombre">Nombre Completo:</label>
-            <input type="text" id="nombre" name="nombre" required>
+            <input type="text" id="nombre" name="nombre" placeholder="Ingresa tu nombre completo" required>
+        </div>
+        <div class="form-group">
+            <label for="semana">Selecciona una semana:</label>
+            <input type="week" id="semana" name="semana" required>
         </div>
         <div class="form-group">
             <label for="cargo">Cargo:</label>
-            <input type="text" id="cargo" name="cargo" required>
+            <input type="text" id="cargo" name="cargo" placeholder="Ingresa tu cargo" required>
         </div>
         <div class="form-group">
-            <label for="semana">Semana (rango de fechas):</label>
-            <input type="text" id="semana" name="semana" placeholder="Ejemplo: Semana del 12/02/2024 al 18/02/2024" required>
-        </div>
-        <div class="form-group">
-            <label for="actividades">Actividades:</label>
-            <textarea id="actividades" name="actividades" placeholder="Escribe las actividades para esta semana" required></textarea>
+            <label>Actividades:</label>
+            <div id="actividadesContainer">
+                <div class="actividad">
+                    <select class="diaSemana">
+                        <option value="Lunes">Lunes</option>
+                        <option value="Martes">Martes</option>
+                        <option value="Miércoles">Miércoles</option>
+                        <option value="Jueves">Jueves</option>
+                        <option value="Viernes">Viernes</option>
+                        <option value="Sábado">Sábado</option>
+                        <option value="Domingo">Domingo</option>
+                    </select>
+                    <input type="text" class="actividadTexto" placeholder="Escribe una actividad" required>
+                    <button type="button" class="remove-btn" onclick="removeActivity(this)">X</button>
+                </div>
+            </div>
+            <button type="button" class="add-btn" onclick="addActivity()">Añadir Actividad</button>
         </div>
         <div class="form-group">
             <input type="submit" value="Guardar Planificación">
@@ -81,22 +105,60 @@
 </div>
 
 <script>
+    function addActivity() {
+        const container = document.getElementById("actividadesContainer");
+        const div = document.createElement("div");
+        div.classList.add("actividad");
+        div.innerHTML = `
+            <select class="diaSemana">
+                <option value="Lunes">Lunes</option>
+                <option value="Martes">Martes</option>
+                <option value="Miércoles">Miércoles</option>
+                <option value="Jueves">Jueves</option>
+                <option value="Viernes">Viernes</option>
+                <option value="Sábado">Sábado</option>
+                <option value="Domingo">Domingo</option>
+            </select>
+            <input type="text" class="actividadTexto" placeholder="Escribe una actividad" required>
+            <button type="button" class="remove-btn" onclick="removeActivity(this)">X</button>
+        `;
+        container.appendChild(div);
+    }
+
+    function removeActivity(button) {
+        button.parentElement.remove();
+    }
+
     document.getElementById("planificacionForm").addEventListener("submit", function(event) {
-        event.preventDefault(); // Evitar que el formulario se envíe de forma tradicional
+        event.preventDefault();
 
-        // Obtener los datos del formulario
         const nombre = document.getElementById("nombre").value;
-        const cargo = document.getElementById("cargo").value;
         const semana = document.getElementById("semana").value;
-        const actividades = document.getElementById("actividades").value;
+        const cargo = document.getElementById("cargo").value;
+        const actividades = Array.from(document.querySelectorAll(".actividad")).map(actividad => {
+            const dia = actividad.querySelector(".diaSemana").value;
+            const texto = actividad.querySelector(".actividadTexto").value;
+            return `${dia}: ${texto}`;
+        }).join("; ");
 
-        // Enviar los datos al script de Google Apps Script
+        const [año, semanaISO] = semana.split("-W");
+        const primeraFecha = new Date(año, 0, 1 + (semanaISO - 1) * 7);
+        const diaSemana = primeraFecha.getDay();
+        const fechaInicio = new Date(primeraFecha);
+        fechaInicio.setDate(primeraFecha.getDate() - diaSemana + 1);
+        const fechaFin = new Date(fechaInicio);
+        fechaFin.setDate(fechaInicio.getDate() + 6);
+
+        const fechaInicioStr = fechaInicio.toISOString().split("T")[0];
+        const fechaFinStr = fechaFin.toISOString().split("T")[0];
+
         fetch("https://script.google.com/macros/s/AKfycbwqtQzQcydg-s3RCPpVBo5gvLrLFuv66Bbb9bH_ckAmp_c7-oXxn0ueROEboFnUa11gPQ/exec", {
             method: "POST",
             body: JSON.stringify({
                 nombre: nombre,
+                fechaInicio: fechaInicioStr,
+                fechaFin: fechaFinStr,
                 cargo: cargo,
-                semana: semana,
                 actividades: actividades
             }),
             headers: {
@@ -105,8 +167,23 @@
         })
         .then(response => response.text())
         .then(message => {
-            alert(message); // Mostrar mensaje de éxito
-            document.getElementById("planificacionForm").reset(); // Limpiar el formulario
+            alert(message);
+            document.getElementById("planificacionForm").reset();
+            document.getElementById("actividadesContainer").innerHTML = `
+                <div class="actividad">
+                    <select class="diaSemana">
+                        <option value="Lunes">Lunes</option>
+                        <option value="Martes">Martes</option>
+                        <option value="Miércoles">Miércoles</option>
+                        <option value="Jueves">Jueves</option>
+                        <option value="Viernes">Viernes</option>
+                        <option value="Sábado">Sábado</option>
+                        <option value="Domingo">Domingo</option>
+                    </select>
+                    <input type="text" class="actividadTexto" placeholder="Escribe una actividad" required>
+                    <button type="button" class="remove-btn" onclick="removeActivity(this)">X</button>
+                </div>
+            `;
         })
         .catch(error => {
             console.error("Error:", error);
