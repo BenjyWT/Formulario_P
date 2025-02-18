@@ -83,7 +83,7 @@
             <label>Actividades:</label>
             <div id="actividadesContainer">
                 <div class="actividad">
-                    <select class="diaSemana">
+                    <select class="diaSemana" onchange="updateDiaFecha(this)">
                         <option value="Lunes">Lunes</option>
                         <option value="Martes">Martes</option>
                         <option value="Miércoles">Miércoles</option>
@@ -105,12 +105,13 @@
 </div>
 
 <script>
+    // Función para añadir actividades
     function addActivity() {
         const container = document.getElementById("actividadesContainer");
         const div = document.createElement("div");
         div.classList.add("actividad");
         div.innerHTML = `
-            <select class="diaSemana">
+            <select class="diaSemana" onchange="updateDiaFecha(this)">
                 <option value="Lunes">Lunes</option>
                 <option value="Martes">Martes</option>
                 <option value="Miércoles">Miércoles</option>
@@ -125,10 +126,42 @@
         container.appendChild(div);
     }
 
+    // Función para eliminar actividades
     function removeActivity(button) {
         button.parentElement.remove();
     }
 
+    // Función para actualizar el día con la fecha correspondiente
+    function updateDiaFecha(select) {
+        const semana = document.getElementById("semana").value;
+        if (!semana) return;
+
+        const [año, semanaISO] = semana.split("-W");
+        const primeraFecha = new Date(año, 0, 1 + (semanaISO - 1) * 7);
+        const diaSemana = primeraFecha.getDay();
+        const fechaInicio = new Date(primeraFecha);
+        fechaInicio.setDate(primeraFecha.getDate() - diaSemana + 1); // Lunes de la semana
+
+        const diasDeLaSemana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+        const diaSeleccionado = select.value;
+
+        const indexDia = diasDeLaSemana.indexOf(diaSeleccionado);
+        const diaFecha = new Date(fechaInicio);
+        diaFecha.setDate(fechaInicio.getDate() + indexDia); // Ajustamos al día de la semana
+
+        const fechaDia = diaFecha.getDate(); // Obtener el día numérico
+        select.innerHTML = `
+            <option value="Lunes">Lunes ${fechaDia}</option>
+            <option value="Martes">Martes ${fechaDia + 1}</option>
+            <option value="Miércoles">Miércoles ${fechaDia + 2}</option>
+            <option value="Jueves">Jueves ${fechaDia + 3}</option>
+            <option value="Viernes">Viernes ${fechaDia + 4}</option>
+            <option value="Sábado">Sábado ${fechaDia + 5}</option>
+            <option value="Domingo">Domingo ${fechaDia + 6}</option>
+        `;
+    }
+
+    // Función que se ejecuta cuando se envía el formulario
     document.getElementById("planificacionForm").addEventListener("submit", function(event) {
         event.preventDefault();
 
@@ -171,7 +204,7 @@
             document.getElementById("planificacionForm").reset();
             document.getElementById("actividadesContainer").innerHTML = `
                 <div class="actividad">
-                    <select class="diaSemana">
+                    <select class="diaSemana" onchange="updateDiaFecha(this)">
                         <option value="Lunes">Lunes</option>
                         <option value="Martes">Martes</option>
                         <option value="Miércoles">Miércoles</option>
